@@ -1,0 +1,114 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  DOCTOR
+  PATIENT
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  doctor       Doctor?
+  appointments Appointment[]
+}
+
+model Doctor {
+  id                  Int      @id @default(autoincrement())
+  userId              Int      @unique
+  user                User     @relation(fields: [userId], references: [id])
+  specialization      String
+  slotDurationMinutes Int      @default(30)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  workingHours WorkingHour[]
+  leaves       Leave[]
+  appointments Appointment[]
+
+  googleRefreshToken String?
+}
+
+model WorkingHour {
+  id        Int    @id @default(autoincrement())
+  doctorId  Int
+  doctor    Doctor @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  dayOfWeek Int 
+  startTime String 
+  endTime   String 
+
+  @@unique([doctorId, dayOfWeek])
+}
+
+model Leave {
+  id       Int      @id @default(autoincrement())
+  doctorId Int
+  doctor   Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  date     DateTime @db.Date
+  reason   String?
+
+  @@unique([doctorId, date])
+}
+
+// A booked slot.
+model Appointment {
+  id        Int      @id @default(autoincrement())
+  doctorId  Int
+  doctor    Doctor   @relation(fields: [doctorId], references: [id])
+  patientId Int
+  patient   User     @relation(fields: [patientId], references: [id])
+  date      DateTime @db.Date
+  startTime String // "HH:mm"
+  endTime   String // "HH:mm"
+  createdAt DateTime @default(now())
+
+  reasonForVisit String?
+
+  aiSummary            String?
+  aiUrgency            String? 
+  aiSuggestedQuestions String[]
+  aiGeneratedAt        DateTime?
+  doctorNotes String?
+  completedAt DateTime?
+
+  patientSummary            String?
+  patientSummaryGeneratedAt DateTime?
+
+  cancelledAt DateTime?
+  reminderSentAt DateTime?
+
+  googleCalendarEventId String?
+
+  prescriptions Prescription[]
+  @@index([doctorId, date, startTime])
+  @@index([patientId])
+}
+
+model Prescription {
+  id            Int         @id @default(autoincrement())
+  appointmentId Int
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  medicineName  String
+  dosage        String
+  frequency     String
+  durationDays  Int
+  instructions  String?
+  createdAt     DateTime    @default(now())
+
+  lastReminderSentAt DateTime?
+
+  @@index([appointmentId])
+}
