@@ -8,12 +8,6 @@ async function bookAppointment(req, res) {
   const appointment = await appointmentService.bookAppointment(req.user.id, req.body);
   res.status(201).json({ appointment });
 
-  // Fired after the response is already sent, and not awaited: the patient
-  // must never wait on this, and its outcome must never affect the booking
-  // that already succeeded above. None of these three throws, but .catch()
-  // stays here as a backstop against unhandled rejections -- the standard
-  // rule for any un-awaited async call. Three separate external services
-  // (Gemini, email, Google Calendar), the exact same isolation pattern.
   aiService.generateAndStorePreVisitSummary(appointment).catch((err) => {
     console.error("Unexpected error in AI summary generation:", err);
   });
