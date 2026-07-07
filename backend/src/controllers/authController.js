@@ -1,7 +1,5 @@
 const authService = require("../services/authService");
 
-// Controllers only deal with HTTP: read the request, call the service,
-// send the response. No business logic and no direct Prisma calls here.
 async function register(req, res) {
   const { user, token } = await authService.registerUser(req.body);
   res.status(201).json({ user, token });
